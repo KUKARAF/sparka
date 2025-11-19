@@ -50,16 +50,8 @@ jobs:
     - name: Install cargo-mobile2
       run: cargo install cargo-mobile2
       
-    - name: Set up Android NDK
-      uses: android-actions/setup-android-ndk@v1
-      with:
-        ndk-version: r25b
-        add-to-path: true
-        
     - name: Initialize Android project
       run: |
-        export NDK_HOME=$ANDROID_NDK_HOME
-        export PATH=$PATH:$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin
         cargo mobile init --non-interactive
         # Fix Android project structure for proper APK building
         
