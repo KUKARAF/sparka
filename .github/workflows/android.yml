@@ -23,7 +23,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '11'
-      
+        
     - name: Cache cargo registry
       uses: actions/cache@v4
       with:
@@ -52,7 +52,7 @@ jobs:
       
     - name: Initialize Android project
       run: |
-        cargo mobile init --android --non-interactive
+        cargo mobile init --non-interactive
         # Fix Android project structure for proper APK building
         
     - name: Set up Android SDK
