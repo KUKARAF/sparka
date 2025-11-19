@@ -1,0 +1,26 @@
+FROM rust:1.91 as builder
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install cargo-mobile2
+RUN cargo install cargo-mobile2
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Initialize Android project
+RUN cargo mobile init --android --non-interactive
+
+# Build APK
+RUN cargo mobile android build --release
+
+# Runtime stage for potential future use
+FROM scratch as runtime
+COPY --from=builder /app/target/android-artifacts/release/app-release.apk /app.apk
