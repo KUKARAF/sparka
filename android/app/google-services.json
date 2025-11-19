@@ -12,7 +12,8 @@
           "package_name": "com.sparka"
         }
       },
-      "oauth_client": []
+      "oauth_client": [],
+      "api_key": []
     }
   ],
   "configuration_version": "1"
