@@ -51,7 +51,7 @@ jobs:
       run: cargo install cargo-mobile2
       
     - name: Set up Android NDK
-      uses: nttld-setup-ndk/setup-android-ndk@v1
+      uses: android-actions/setup-android-ndk@v1
       with:
         ndk-version: r25b
         add-to-path: true
