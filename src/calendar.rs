@@ -152,3 +152,32 @@ pub struct AclScope {
     pub type_: String,
     pub value: Option<String>,
 }
+
+pub async fn get_events_for_period(
+    access_token: &str,
+    calendar_id: &str,
+    start_time: chrono::DateTime<chrono::Utc>,
+    end_time: chrono::DateTime<chrono::Utc>,
+) -> Result<Vec<CalendarEvent>> {
+    let client = Client::new();
+    
+    let response = client
+        .get(&format!("https://www.googleapis.com/calendar/v3/calendars/{}/events", calendar_id))
+        .header("Authorization", format!("Bearer {}", access_token))
+        .query(&[
+            ("timeMin", &start_time.to_rfc3339()),
+            ("timeMax", &end_time.to_rfc3339()),
+            ("singleEvents", "true"),
+            ("orderBy", "startTime"),
+        ])
+        .send()
+        .await?;
+    
+    let events_response: EventsResponse = response.json().await?;
+    Ok(events_response.items)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EventsResponse {
+    items: Vec<CalendarEvent>,
+}

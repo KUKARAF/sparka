@@ -12,6 +12,7 @@ mod groq;
 mod storage;
 mod overlay;
 mod drive;
+mod scheduler;
 
 static APP_STATE: Mutex<Option<app_state::AppState>> = Mutex::new(None);
 
@@ -24,6 +25,8 @@ mod app_state {
         pub calendar_users: Vec<String>,
         pub sparka_folder_id: Option<String>,
         pub db: storage::Database,
+        pub scheduling_goals: Vec<scheduler::SchedulingGoal>,
+        pub suggestions: Vec<scheduler::ScheduleSuggestion>,
     }
     
     impl AppState {
@@ -34,6 +37,8 @@ mod app_state {
             calendar_users: Vec::new(),
             sparka_folder_id: None,
             db: storage::Database::new()?,
+            scheduling_goals: Vec::new(),
+            suggestions: Vec::new(),
         })
     }
     }
@@ -321,6 +326,209 @@ pub extern "system" fn Java_com_sparka_MainActivity_getDriveFiles(
             error_str.into_raw()
         }
     }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_sparka_MainActivity_createSchedulingGoal(
+    env: JNIEnv,
+    _class: JClass,
+    goal_description: JString,
+    user_id: JString,
+) -> jstring {
+    let goal_desc_str: String = env.get_string(goal_description).expect("Invalid string");
+    let user_id_str: String = env.get_string(user_id).expect("Invalid string");
+    
+    let rt = tokio::runtime::Runtime::new();
+    let result = match rt {
+        Ok(rt) => {
+            rt.block_on(async {
+                let mut state = APP_STATE.lock().unwrap();
+                let app_state = state.as_mut().ok_or_else(|| anyhow::anyhow!("App not initialized"));
+                
+                match app_state {
+                    Some(ref mut s) => {
+                        match scheduler::create_goal_from_natural_language(
+                            &goal_desc_str,
+                            &user_id_str,
+                            &s.google_token.as_ref().unwrap(),
+                        ).await {
+                            Ok(goal) => {
+                                // Store goal in database
+                                if let Err(e) = storage::store_scheduling_goal(&s.db, &goal) {
+                                    Ok(format!("Error storing goal: {}", e))
+                                } else {
+                                    s.scheduling_goals.push(goal);
+                                    Ok("Goal created successfully".to_string())
+                                }
+                            }
+                            Err(e) => Ok(format!("Error creating goal: {}", e))
+                        }
+                    }
+                    None => Ok("App not initialized".to_string())
+                }
+            })
+        }
+        Err(e) => Ok(format!("Runtime error: {}", e))
+    };
+    
+    match result {
+        Ok(msg) => {
+            let msg_str = env.new_string(msg).expect("Failed to create string");
+            msg_str.into_raw()
+        }
+        Err(_) => {
+            let error_str = env.new_string("Unknown error occurred".to_string()).expect("Failed to create string");
+            error_str.into_raw()
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_sparka_MainActivity_generateScheduleSuggestions(
+    env: JNIEnv,
+    _class: JClass,
+    user_id: JString,
+) -> jstring {
+    let user_id_str: String = env.get_string(user_id).expect("Invalid string");
+    
+    let rt = tokio::runtime::Runtime::new();
+    let result = match rt {
+        Ok(rt) => {
+            rt.block_on(async {
+                let state = APP_STATE.lock().unwrap();
+                let app_state = state.as_ref().ok_or_else(|| anyhow::anyhow!("App not initialized"));
+                
+                match app_state {
+                    Some(s) => {
+                        // Get active goals
+                        match storage::get_active_goals(&s.db, &user_id_str) {
+                            Ok(goals) => {
+                                let mut all_suggestions = Vec::new();
+                                
+                                for goal in goals {
+                                    // Get calendar events for next 7 days
+                                    match calendar::get_events_for_period(
+                                        &s.google_token.as_ref().unwrap(),
+                                        &s.selected_calendars[0],
+                                        chrono::Utc::now(),
+                                        chrono::Utc::now() + chrono::Duration::days(7),
+                                    ).await {
+                                        Ok(events) => {
+                                            let request = scheduler::ScheduleRequest {
+                                                goal_description: goal.description.clone(),
+                                                existing_events: events,
+                                                preferences: goal.preferred_times.clone(),
+                                                duration_minutes: goal.duration_minutes,
+                                            };
+                                            
+                                            let engine = scheduler::SuggestionEngine::new();
+                                            match engine.generate_suggestions(&request, &s.google_token.as_ref().unwrap()).await {
+                                                Ok(mut suggestions) => {
+                                                    // Store suggestions in database
+                                                    for suggestion in &suggestions {
+                                                        let _ = storage::store_schedule_suggestion(&s.db, suggestion);
+                                                    }
+                                                    all_suggestions.append(&mut suggestions);
+                                                }
+                                                Err(e) => log::error!("Error generating suggestions: {}", e),
+                                            }
+                                        }
+                                        Err(e) => log::error!("Error getting calendar events: {}", e),
+                                    }
+                                }
+                                
+                                let suggestions_json = serde_json::to_string(&all_suggestions)
+                                    .expect("Failed to serialize suggestions");
+                                Ok(suggestions_json)
+                            }
+                            Err(e) => Ok(format!("Error getting goals: {}", e))
+                        }
+                    }
+                    None => Ok("App not initialized".to_string())
+                }
+            })
+        }
+        Err(e) => Ok(format!("Runtime error: {}", e))
+    };
+    
+    match result {
+        Ok(msg) => {
+            let msg_str = env.new_string(msg).expect("Failed to create string");
+            msg_str.into_raw()
+        }
+        Err(_) => {
+            let error_str = env.new_string("Unknown error occurred".to_string()).expect("Failed to create string");
+            error_str.into_raw()
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_sparka_SuggestionReceiver_acceptSuggestion(
+    env: JNIEnv,
+    _class: JClass,
+    suggestion_id: JString,
+    title: JString,
+    start_time: JString,
+) {
+    let suggestion_id_str: String = env.get_string(suggestion_id).expect("Invalid string");
+    let title_str: String = env.get_string(title).expect("Invalid string");
+    let start_time_str: String = env.get_string(start_time).expect("Invalid string");
+    
+    let rt = tokio::runtime::Runtime::new();
+    let _ = rt.block_on(async {
+        let state = APP_STATE.lock().unwrap();
+        let app_state = state.as_ref().ok_or_else(|| anyhow::anyhow!("App not initialized"));
+        
+        match app_state {
+            Some(s) => {
+                // Create calendar event from suggestion
+                let event = calendar::CalendarEvent {
+                    id: "".to_string(),
+                    summary: format!("🎯 {}", title_str),
+                    description: "AI-generated schedule suggestion".to_string(),
+                    start: calendar::EventTime {
+                        date_time: Some(start_time_str.parse::<chrono::DateTime<chrono::Utc>>().unwrap_or_else(|_| chrono::Utc::now())),
+                        date: None,
+                    },
+                    end: calendar::EventTime {
+                        date_time: Some(start_time_str.parse::<chrono::DateTime<chrono::Utc>>().unwrap_or_else(|_| chrono::Utc::now()) + chrono::Duration::hours(1)),
+                        date: None,
+                    },
+                };
+                
+                // Update suggestion status
+                let _ = storage::update_suggestion_status(&s.db, &suggestion_id_str, scheduler::SuggestionStatus::Accepted);
+                
+                log::info!("Accepted suggestion: {} - {}", suggestion_id_str, title_str);
+            }
+            None => log::error!("App not initialized"),
+        }
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_sparka_SuggestionReceiver_rejectSuggestion(
+    env: JNIEnv,
+    _class: JClass,
+    suggestion_id: JString,
+) {
+    let suggestion_id_str: String = env.get_string(suggestion_id).expect("Invalid string");
+    
+    let rt = tokio::runtime::Runtime::new();
+    let _ = rt.block_on(async {
+        let state = APP_STATE.lock().unwrap();
+        let app_state = state.as_ref().ok_or_else(|| anyhow::anyhow!("App not initialized"));
+        
+        match app_state {
+            Some(s) => {
+                // Update suggestion status
+                let _ = storage::update_suggestion_status(&s.db, &suggestion_id_str, scheduler::SuggestionStatus::Rejected);
+                log::info!("Rejected suggestion: {}", suggestion_id_str);
+            }
+            None => log::error!("App not initialized"),
+        }
+    });
 }
 
 #[no_mangle]

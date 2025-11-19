@@ -18,6 +18,12 @@ jobs:
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+      
     - name: Cache cargo registry
       uses: actions/cache@v4
       with:
@@ -39,22 +45,39 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y pkg-config libssl-dev
+        sudo apt-get install -y pkg-config libssl-dev openjdk-11-jdk
         
     - name: Install cargo-mobile2
       run: cargo install cargo-mobile2
       
     - name: Initialize Android project
-      run: cargo mobile init --android --non-interactive
+      run: |
+        cargo mobile init --android --non-interactive
+        # Fix Android project structure for proper APK building
+        
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
       
     - name: Build APK
-      run: cargo mobile android build --release
-      
+      run: |
+        # Navigate to Android project and build APK
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleRelease --stacktrace
+        
+    - name: Find APK file
+      id: find_apk
+      run: |
+        APK_PATH=$(find android -name "*.apk" -type f | head -1)
+        echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+        echo "Found APK at: $APK_PATH"
+        ls -la android/app/build/outputs/apk/release/ || true
+        
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: sparka-apk
-        path: target/android-artifacts/release/app-release.apk
+        path: ${{ steps.find_apk.outputs.apk_path }}
         
     - name: Release APK
       if: github.event_name == 'release'
@@ -63,6 +86,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: target/android-artifacts/release/app-release.apk
+        asset_path: ${{ steps.find_apk.outputs.apk_path }}
         asset_name: sparka.apk
         asset_content_type: application/vnd.android.package-archive

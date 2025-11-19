@@ -214,4 +214,6 @@ public class MainActivity extends AppCompatActivity {
     public native void setCalendarUsers(String usersJson);
     public native String shareWithUser(String email);
     public native String getDriveFiles();
+    public native String createSchedulingGoal(String goalDescription, String userId);
+    public native String generateScheduleSuggestions(String userId);
 }

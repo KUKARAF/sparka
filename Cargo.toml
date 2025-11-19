@@ -28,6 +28,10 @@ oauth2 = "4.4"
 # Google Drive API
 google-drive3 = "5.0"
 
+# Scheduling and notifications
+cron = "0.12"
+tokio-cron-scheduler = "0.10"
+
 # File handling
 mime_guess = "2.0"
 
