@@ -65,7 +65,7 @@ jobs:
         # Navigate to Android project and build APK
         cd android
         chmod +x gradlew
-        ./gradlew assembleRelease --stacktrace
+        ./gradlew assembleRelease -Pandroid.useAndroidX=true --stacktrace
         
     - name: Find APK file
       id: find_apk
