@@ -23,6 +23,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
+        options: -Xmx2048m
         
     - name: Cache cargo registry
       uses: actions/cache@v4
