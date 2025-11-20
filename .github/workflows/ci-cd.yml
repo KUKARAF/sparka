@@ -26,7 +26,6 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
-          override: true
 
       - name: 🕵️ Flutter Setup
         uses: subosito/flutter-action@v2
