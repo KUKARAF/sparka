@@ -14,9 +14,6 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
       
     - name: Set up Java
       uses: actions/setup-java@v4
@@ -26,68 +23,47 @@ jobs:
         java-package: jdk
         architecture: x64
         
-    - name: Cache cargo registry
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-        
-    - name: Cache cargo index
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-        
-    - name: Cache cargo build
-      uses: actions/cache@v4
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-        
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y pkg-config libssl-dev
-        
-    - name: Install cargo-mobile2
-      run: cargo install cargo-mobile2
-      
-    - name: Initialize Android project
-      run: |
-        cargo mobile init --non-interactive
-        # Fix Android project structure for proper APK building
-        
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
       
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+      
     - name: Build APK
       run: |
-        # Navigate to Android project and build APK
         cd android
-        chmod +x gradlew
-        ./gradlew assembleRelease -Pandroid.useAndroidX=true --stacktrace
+        ./gradlew assembleDebug --stacktrace
         
     - name: Find APK file
       id: find_apk
       run: |
-        APK_PATH=$(find android -name "*.apk" -type f | head -1)
+        APK_PATH=$(find android/app/build/outputs/apk/debug -name "*.apk" -type f | head -1)
+        if [ -z "$APK_PATH" ]; then
+          APK_PATH=$(find android -name "*.apk" -type f | head -1)
+        fi
         echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
         echo "Found APK at: $APK_PATH"
-        ls -la android/app/build/outputs/apk/release/ || true
+        ls -la android/app/build/outputs/apk/debug/ || true
         
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: sparka-apk
         path: ${{ steps.find_apk.outputs.apk_path }}
+        retention-days: 30
         
     - name: Release APK
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ${{ steps.find_apk.outputs.apk_path }}
-        asset_name: sparka.apk
-        asset_content_type: application/vnd.android.package-archive
+        files: ${{ steps.find_apk.outputs.apk_path }}

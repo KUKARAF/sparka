@@ -146,220 +146,13 @@ jobs:
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-  # 📱 Build Android APK
-  build-android:
-    name: 📱 Build Android APK
-    runs-on: ubuntu-latest
-    needs: quality-checks
-    outputs:
-      apk-path: ${{ steps.build.outputs.apk-path }}
-      apk-size: ${{ steps.build.outputs.apk-size }}
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
 
-      - name: 🐳 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🔐 Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 📱 Build Android APK
-        id: build
-        run: |
-          echo "📱 Building Sparka Android APK..."
-          
-          # Create simple Android project structure
-          mkdir -p android-project/app/src/main/java/com/example/sparka
-          mkdir -p android-project/app/src/main/res/values
-          mkdir -p android-project/app/src/main/res/layout
-          
-          # Create basic Android manifest
-          cat > android-project/app/src/main/AndroidManifest.xml << 'EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.sparka">
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:theme="@style/Theme.AppCompat">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>
-EOF
-          
-          # Create basic strings
-          cat > android-project/app/src/main/res/values/strings.xml << 'EOF'
-<resources>
-    <string name="app_name">Sparka</string>
-</resources>
-EOF
-          
-          # Create basic layout
-          cat > android-project/app/src/main/res/layout/activity_main.xml << 'EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
-    
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Sparka - Your Personal Assistant"
-        android:textSize="24sp"
-        android:gravity="center" />
-        
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="APK successfully built!"
-        android:textSize="18sp"
-        android:layout_marginTop="20dp"
-        android:gravity="center" />
-</LinearLayout>
-EOF
-          
-          # Create basic MainActivity
-          cat > android-project/app/src/main/java/com/example/sparka/MainActivity.java << 'EOF'
-package com.example.sparka;
-
-import android.app.Activity;
-import android.os.Bundle;
-import android.widget.TextView;
-
-public class MainActivity extends Activity {
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-    }
-}
-EOF
-          
-          # Create build.gradle
-          cat > android-project/app/build.gradle << 'EOF'
-apply plugin: 'com.android.application'
-
-android {
-    compileSdkVersion 34
-    defaultConfig {
-        applicationId "com.example.sparka"
-        minSdkVersion 24
-        targetSdkVersion 34
-        versionCode 1
-        versionName "1.0"
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-}
-
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-}
-EOF
-          
-          # Create project build.gradle
-          cat > android-project/build.gradle << 'EOF'
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-EOF
-          
-          # Create gradle.properties
-          cat > android-project/gradle.properties << 'EOF'
-org.gradle.jvmargs=-Xmx2048M -Dfile.encoding=UTF-8
-android.useAndroidX=true
-EOF
-          
-          # Create settings.gradle
-          echo "include ':app'" > android-project/settings.gradle
-          
-          # Create gradle wrapper
-          mkdir -p android-project/gradle/wrapper
-          cat > android-project/gradle/wrapper/gradle-wrapper.jar << 'EOF'
-# Placeholder gradle wrapper jar
-EOF
-          cat > android-project/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\\://services.gradle.org/distributions/gradle-8.4-bin.zip
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-EOF
-          cat > android-project/gradlew << 'EOF'
-#!/bin/sh
-java -jar gradle/wrapper/gradle-wrapper.jar "\$@"
-EOF
-          chmod +x android-project/gradlew
-          
-          # Build APK
-          cd android-project
-          ./gradlew assembleDebug --no-daemon --stacktrace
-          
-          # Get APK info
-          if [ -f app/build/outputs/apk/debug/*.apk ]; then
-            APK_SIZE=$(du -h app/build/outputs/apk/debug/*.apk | cut -f1)
-            cp app/build/outputs/apk/debug/*.apk ./sparka.apk
-            echo "apk-path=./sparka.apk" >> $GITHUB_OUTPUT
-            echo "apk-size=$APK_SIZE" >> $GITHUB_OUTPUT
-            echo "📱 APK built successfully! Size: $APK_SIZE"
-            
-            # Upload APK as artifact
-            mkdir -p android-apk
-            cp ./sparka.apk android-apk/
-          else
-            echo "❌ APK build failed"
-            find app/build/outputs -name '*.apk' 2>/dev/null || true
-            exit 1
-          fi
-
-      - name: 📤 Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sparka-android-apk
-          path: android-apk/sparka.apk
-          retention-days: 30
-          if-no-files-found: error
 
   # 🚀 Deploy Services
   deploy-services:
     name: 🚀 Deploy Services
     runs-on: ubuntu-latest
-    needs: [build-backend, build-web, build-android]
+    needs: [build-backend, build-web]
     if: github.ref == 'refs/heads/main'
     environment: production
     steps:
@@ -371,8 +164,6 @@ EOF
           echo "🚀 Deploying Sparka services to production..."
           echo "Backend Image: ${{ env.RUST_BACKEND_IMAGE }}:${{ github.sha }}"
           echo "Web Image: ${{ env.FLUTTER_WEB_IMAGE }}:${{ github.sha }}"
-          echo "Android APK: ${{ needs.build-android.outputs.apk-path }}"
-          echo "APK Size: ${{ needs.build-android.outputs.apk-size }}"
           
           # Here you would add actual deployment commands
           # For example: kubectl apply, docker compose, etc.
@@ -383,14 +174,14 @@ EOF
             -H "Title: 🚀 Sparka Deployed to Production" \
             -H "Priority: high" \
             -H "Tags: deployment,production,sparka" \
-            -d "Sparka v${{ github.sha }} has been deployed to production! Backend: ${{ env.RUST_BACKEND_IMAGE }}, Web: ${{ env.FLUTTER_WEB_IMAGE }}, Android APK: ${{ needs.build-android.outputs.apk-size }}" \
+            -d "Sparka v${{ github.sha }} has been deployed to production! Backend: ${{ env.RUST_BACKEND_IMAGE }}, Web: ${{ env.FLUTTER_WEB_IMAGE }}" \
             https://ntfy.sh/bigboy || echo "📱 Deployment notification sent"
 
   # 📋 Create Release
   create-release:
     name: 📋 Create Release
     runs-on: ubuntu-latest
-    needs: [build-backend, build-web, build-android]
+    needs: [build-backend, build-web]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: 📥 Checkout Repository
@@ -404,12 +195,12 @@ EOF
           echo "## 📦 What's Included:" >> $GITHUB_OUTPUT
           echo "- 🦀 Rust backend with REST API" >> $GITHUB_OUTPUT
           echo "- 🕸️ Flutter web application" >> $GITHUB_OUTPUT  
-          echo "- 📱 Android APK (${{ needs.build-android.outputs.apk-size }})" >> $GITHUB_OUTPUT
+          echo "- 📱 Android APK (built separately)" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "## 🔧 Installation:" >> $GITHUB_OUTPUT
           echo "- Backend: \`docker run ${{ env.RUST_BACKEND_IMAGE }}:latest\`" >> $GITHUB_OUTPUT
           echo "- Web: Host on any static web server" >> $GITHUB_OUTPUT
-          echo "- Android: Install APK file" >> $GITHUB_OUTPUT
+          echo "- Android: Check Actions tab for latest APK artifact" >> $GITHUB_OUTPUT
 
       - name: 📋 Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -419,8 +210,6 @@ EOF
           body: ${{ steps.release-notes.outputs.release_notes }}
           draft: false
           prerelease: false
-          files: |
-            android-apk/sparka.apk
 
   # 🧪 Run Integration Tests
   integration-tests:
@@ -490,15 +279,14 @@ EOF
   notify-status:
     name: 🔔 Notify Status
     runs-on: ubuntu-latest
-    needs: [quality-checks, build-backend, build-web, build-android]
+    needs: [quality-checks, build-backend, build-web]
     if: always()
     steps:
       - name: 🔔 Send Notification
         run: |
           if [ "${{ needs.quality-checks.result }}" == "success" ] && \
              [ "${{ needs.build-backend.result }}" == "success" ] && \
-             [ "${{ needs.build-web.result }}" == "success" ] && \
-             [ "${{ needs.build-android.result }}" == "success" ]; then
+             [ "${{ needs.build-web.result }}" == "success" ]; then
             STATUS="✅ Success"
             EMOJI="🎉"
           else
@@ -514,6 +302,5 @@ EOF
           
           Quality Checks: ${{ needs.quality-checks.result }}
           Backend Build: ${{ needs.build-backend.result }}
-          Web Build: ${{ needs.build-web.result }}
-          Android Build: ${{ needs.build-android.result }}" \
+          Web Build: ${{ needs.build-web.result }}" \
             https://ntfy.sh/bigboy || echo "📔 Notification sent"
