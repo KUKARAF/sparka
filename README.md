@@ -1,310 +1,91 @@
-# Sparka - Cross-Platform Personal Assistant
+# Sparka - Android Personal Assistant
 
-## 🎯 Project Overview
+## 🎯 Overview
 
-Sparka is a modern cross-platform personal assistant built with Rust, Flutter, and Android native development. The project demonstrates enterprise-grade development practices with containerization, CI/CD pipelines, and comprehensive testing.
+Sparka is an offline-first Android personal assistant with AI integration. Features AI-powered chat, file management, calendar integration, and Google Drive sync. User synchronization happens via JSON files on Google Drive.
+
+## 📱 Features
+
+- **AI Chat**: Groq-powered intelligent conversations
+- **Offline Support**: Local SQLite storage for offline functionality
+- **Google Drive Integration**: File sync and user data backup
+- **Google Calendar Integration**: Event management and scheduling
+- **Overlay System**: Screen lock display for quick access
+- **Push Notifications**: FCM integration for alerts
 
 ## 🏗 Architecture
 
-### 🦀 Rust Backend (`src/`)
-- **Framework**: Actix-web with REST API
-- **AI Integration**: Groq for intelligent responses
-- **Database**: In-memory with SQLite persistence option
-- **Features**: 
-  - Chat API endpoints (`/api/chat`)
-  - Health monitoring (`/health`)
-  - File upload/download
-  - Calendar integration
-  - Drive integration
-  - Overlay functionality
-- **Configuration**: Environment-based with proper error handling
+- **Platform**: Android native with Material Design 3
+- **Language**: Kotlin with MVVM architecture
+- **Storage**: Local SQLite with Google Drive sync
+- **AI**: Groq API integration
+- **Authentication**: Google OAuth2
 
-### 🕸️ Flutter Web App (`lib/`)
-- **Framework**: Flutter 3.x with Material Design 3
-- **State Management**: Provider pattern
-- **Features**:
-  - Cross-platform responsive design
-  - Real-time chat interface
-  - File management
-  - Settings and preferences
-  - Theme switching (light/dark)
-- **Deployment**: Static web hosting ready
+## 🚀 Installation
 
-### 📱 Android App (`android/`)
-- **Framework**: Native Android with Material Design
-- **Architecture**: MVVM with proper separation of concerns
-- **Features**:
-  - Native performance
-  - Offline capability
-  - Push notifications support
-  - Material Design 3 theming
-  - Integration with Rust backend
-- **Build System**: Gradle with proper signing configuration
+1. Download the latest APK from [Releases](https://github.com/KUKARAF/sparka/releases)
+2. Enable "Install from unknown sources" in Android settings
+3. Install the APK file
+4. Sign in with your Google account to enable sync
 
-### 🐳 Containerization (`docker-compose.yml`)
-- **Orchestration**: Docker Compose for multi-service deployment
-- **Images**:
-  - `sparka-backend`: Rust API server
-  - `sparka-web`: Flutter web application
-  - `sparka-android`: Android build environment
-- **Networking**: Internal service communication
-- **Development**: Hot reload with volume mounting
+## 🔧 Setup
 
-## 🔄 Development Workflow
-
-### 📋 Local Development
-```bash
-# Install mise for toolchain management
-curl https://mise.run | sh
-
-# Clone and setup
-git clone <repository>
-cd sparka
-mise install
-
-# Start all services
-docker compose up -d
-
-# Development URLs:
-# - Rust API: http://localhost:8080
-# - Flutter Web: http://localhost:3000
-# - Health Checks: Available on all services
-```
-
-### 🚀 Production Deployment
-```bash
-# Build and push all images
-docker compose build
-docker compose push
-
-# Deploy with orchestration (K8s, Docker Swarm, etc.)
-# All services communicate through internal networking
-```
-
-## 📊 API Endpoints
-
-### Core Chat API
-```
-POST /api/chat
-Content-Type: application/json
-
-{
-  "message": "Hello, how can I help you today?",
-  "conversation_id": "optional-uuid",
-  "user_id": "optional-user-id"
-}
-
-Response:
-{
-  "response": "AI-generated response",
-  "timestamp": "2024-01-01T12:00:00Z",
-  "model": "groq-model",
-  "usage": {
-    "tokens_used": 150,
-    "tokens_remaining": 850
-  }
-}
-```
-
-### File Management
-```
-POST /api/files/upload
-Content-Type: multipart/form-data
-
-GET /api/files/list
-GET /api/files/download/{file_id}
-DELETE /api/files/{file_id}
-```
-
-### Calendar Integration
-```
-GET /api/calendar/events
-POST /api/calendar/events
-PUT /api/calendar/events/{event_id}
-DELETE /api/calendar/events/{event_id}
-```
-
-### Drive Integration
-```
-GET /api/drive/files
-POST /api/drive/upload
-GET /api/drive/search
-```
-
-## 🧪 Testing Strategy
-
-### 📋 Code Quality
-- **Rust**: `cargo fmt`, `cargo clippy`, `cargo audit`
-- **Flutter**: `flutter analyze`, `flutter test`, `dart format`
-- **Android**: Lint checks, unit tests, integration tests
-
-### 🔒 Security
-- **Dependency Scanning**: Automated vulnerability scanning
-- **Container Security**: Minimal base images, regular updates
-- **API Security**: Input validation, rate limiting
-- **Data Protection**: Encrypted communication options
-
-### 🧪 Integration Testing
-- **E2E Tests**: Full user journey automation
-- **Performance Tests**: Load testing and benchmarks
-- **API Tests**: Endpoint validation and error handling
-- **Cross-Platform**: Consistent behavior across all platforms
-
-## 📦 Build & Deployment
-
-### 🐳 Docker Images
-```dockerfile
-# Multi-stage builds for optimization
-FROM eclipse-temurin:17-jdk-alpine AS builder
-# Production-ready with security scanning
-FROM scratch AS runtime
-```
-
-### 🚀 CI/CD Pipeline
-- **Triggers**: Push, PR, manual dispatch
-- **Environments**: Development, staging, production
-- **Artifacts**: APK files, Docker images, test results
-- **Notifications**: ntfy.sh integration for real-time updates
-- **Rollbacks**: Automated rollback capabilities
-
-### 📱 Distribution
-- **Web**: Static hosting on any web server
-- **Android**: APK distribution via GitHub Releases
-- **Backend**: Container registry deployment
-- **Updates**: Semantic versioning with automated releases
-
-## 🔧 Configuration
+### Required APIs
+Enable these APIs in your Google Cloud Console:
+- Google Drive API
+- Google Calendar API
+- Firebase Cloud Messaging (FCM)
 
 ### Environment Variables
-```env
-# Backend Configuration
-RUST_LOG=info
-GROQ_API_KEY=your-groq-key
-DATABASE_URL=sqlite:sparka.db
-
-# Flutter Configuration  
-FLUTTER_WEB_API_URL=http://localhost:8080
-FLUTTER_APP_TITLE=Sparka
-FLUTTER_APP_VERSION=1.0.0
-
-# Android Configuration
-ANDROID_COMPILE_SDK=34
-ANDROID_TARGET_SDK=34
-ANDROID_MIN_SDK=24
+Set these in your environment or `local.properties`:
+```
+GROQ_API_KEY=your-groq-api-key
+GOOGLE_DRIVE_API_KEY=your-google-drive-api-key
+GOOGLE_CALENDAR_API_KEY=your-google-calendar-api-key
 ```
 
-### Development Tools
-- **Language**: Rust 1.70+, Flutter 3.x, Kotlin
-- **Package Managers**: Cargo, pub, Gradle
-- **Container Runtime**: Docker, Docker Compose
-- **Version Control**: Git with conventional commits
+## 📦 Build
 
-## 📈 Performance & Monitoring
+```bash
+# Clone repository
+git clone https://github.com/KUKARAF/sparka.git
+cd sparka
 
-### 📊 Metrics
-- **API Response Time**: <200ms target
-- **Web Load Time**: <3s target
-- **APK Size**: <50MB target
-- **Memory Usage**: <512MB per service
-- **CPU Usage**: <50% per container
+# Build APK
+cd android
+./gradlew assembleDebug
 
-### 🔍 Observability
-- **Health Endpoints**: `/health` on all services
-- **Structured Logging**: JSON format with correlation IDs
-- **Error Tracking**: Comprehensive error reporting
-- **Performance Monitoring**: Real-time metrics collection
+# Install on device
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
 
-## 🔐 Security Considerations
+## 🔄 Sync Protocol
 
-### 🛡️ Data Protection
-- **API Keys**: Environment-based, never in code
-- **User Data**: Local-first with cloud sync option
-- **Communication**: HTTPS-only in production
-- **Authentication**: JWT-based with refresh tokens
+User data is synchronized via JSON files stored in Google Drive:
+- `sparka_settings.json` - User preferences and configuration
+- `sparka_chat_history.json` - Chat conversation history
+- `sparka_calendar_events.json` - Calendar events and reminders
 
-### 🔒 Container Security
-- **Base Images**: Minimal, official distributions
-- **Scanning**: Regular vulnerability scanning
-- **Isolation**: Proper container separation
-- **Secrets Management**: GitHub Secrets integration
+## 📋 Permissions
 
-## 🚀 Future Enhancements
+The app requires these permissions:
+- **Internet**: For AI API calls and Google services
+- **Storage**: For local data and file management
+- **Calendar**: For event management
+- **Overlay**: For screen lock display
+- **Notifications**: For alerts and reminders
 
-### 📱 Mobile Features
-- [ ] iOS app development
-- [ ] Push notification service
-- [ ] Offline-first architecture
-- [ ] Biometric authentication
-- [ ] Background sync service
+## 🔒 Privacy
 
-### 🕸️ Web Features  
-- [ ] Progressive Web App (PWA)
-- [ ] Service Worker for offline support
-- [ ] WebRTC for real-time communication
-- [ ] Advanced file editor
+- **Local-First**: All data stored locally on device
+- **Encrypted Sync**: Google Drive sync uses encryption
+- **Minimal Data**: Only essential data is synced
+- **User Control**: Full control over what gets synced
 
-### 🦀 Backend Features
-- [ ] PostgreSQL database integration
-- [ ] Redis caching layer
-- [ ] GraphQL API alternative
-- [ ] WebSocket real-time updates
-- [ ] Microservices architecture
+## 🐛 Issues
 
-### 🔧 DevOps Features
-- [ ] Kubernetes deployment manifests
-- [ ] Helm charts for packaging
-- [ ] Terraform infrastructure
-- [ ] Monitoring dashboard (Grafana)
-- [ ] Log aggregation (ELK stack)
+Report issues on [GitHub Issues](https://github.com/KUKARAF/sparka/issues)
 
-## 📚 Documentation
+## 📄 License
 
-### 📖 API Documentation
-- OpenAPI/Swagger specification
-- Interactive API documentation
-- Code examples in multiple languages
-- Architecture decision records (ADRs)
-
-### 👥 User Documentation
-- Installation guides for all platforms
-- Troubleshooting section
-- FAQ and common issues
-- Video tutorials for complex features
-
-## 🤝 Contributing
-
-### 🔄 Development Workflow
-1. Fork the repository
-2. Create feature branch from `develop`
-3. Make changes with proper testing
-4. Submit pull request to `main`
-5. Code review and automated checks
-6. Merge and automatic deployment
-
-### 📋 Code Standards
-- **Rust**: Follow `rustfmt` and `clippy` recommendations
-- **Flutter**: Follow `dart format` and `effective dart` guidelines
-- **Git**: Conventional commits with semantic versioning
-- **Documentation**: Update for all API changes
-
-### 🧪 Testing Requirements
-- Unit tests for all new features
-- Integration tests for API endpoints
-- Manual testing checklist for UI changes
-- Performance tests for critical paths
-
----
-
-## 📞 Support
-
-For issues, questions, or contributions:
-- 📁 Create GitHub Issue with detailed description
-- 📧 Check existing issues before creating new ones
-- 📖 Review documentation for common problems
-- 🤝 Follow contribution guidelines for pull requests
-
----
-
-**Status**: ✅ **Production Ready** - All core features implemented and tested
-**Version**: 1.0.0
-**Last Updated**: 2024-01-01
+This project is licensed under the MIT License.
