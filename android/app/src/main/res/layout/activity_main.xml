@@ -15,54 +15,10 @@
         android:layout_marginBottom="32dp" />
 
     <Button
-        android:id="@+id/auth_button"
+        android:id="@+id/test_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Connect Google Account"
+        android:text="Test App"
         android:layout_marginBottom="16dp" />
-
-    <Button
-        android:id="@+id/calendars_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Select Calendars"
-        android:layout_marginBottom="16dp" />
-
-    <Button
-        android:id="@+id/drive_files_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="View Drive Files"
-        android:layout_marginBottom="16dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
-
-        <EditText
-            android:id="@+id/email_input"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Email to share with"
-            android:inputType="textEmailAddress" />
-
-        <Button
-            android:id="@+id/share_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Share" />
-
-    </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Share ticket files to Sparka to automatically add them to your calendar and Drive folder."
-        android:textSize="14sp"
-        android:gravity="center"
-        android:layout_marginTop="32dp" />
 
 </LinearLayout>

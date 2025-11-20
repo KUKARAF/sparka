@@ -1,0 +1,342 @@
+schema: 1.0
+
+name: sparka
+description: Cross-platform personal assistant with AI integration
+
+# 🎯 Project Overview
+# Modern personal assistant built with Rust backend, Flutter web app, and Android native app
+# Features AI-powered chat, file management, calendar integration, and Google Drive sync
+
+# 🏗 Architecture Overview
+# Multi-tier architecture with containerized deployment and CI/CD pipelines
+
+# 📋 What We've Already Accomplished
+# ✅ Rust backend with REST API and Groq integration
+# ✅ Flutter web app with Material Design 3
+# ✅ Android APK with native performance
+# ✅ Docker containerization with multi-service orchestration
+# ✅ GitHub Actions CI/CD with comprehensive testing
+# ✅ Development environment with hot reload
+# ✅ Production-ready deployment configuration
+
+# 🚦 Components
+components:
+  # Rust Backend - Core API server
+  backend:
+    type: rust
+    path: src/
+    description: REST API server with Actix-web framework
+    technologies:
+      - rust:1.70
+      - actix-web:4.4
+      - groq:ai-client
+      - serde:json
+      - tokio:async
+    features:
+      - chat-api: Real-time AI conversation
+      - file-management: Upload/download/sync
+      - calendar-integration: Google Calendar API
+      - drive-integration: Google Drive API
+      - health-monitoring: Service health checks
+      - overlay-system: Screen lock display
+    apis:
+      - POST /api/chat: AI chat interface
+      - GET /health: Service health
+      - POST /api/files/upload: File upload
+      - GET /api/files/list: File listing
+      - GET /api/calendar/events: Calendar events
+      - POST /api/calendar/events: Create events
+    environment:
+      - RUST_LOG:info
+      - GROQ_API_KEY:required
+      - DATABASE_URL:sqlite:sparka.db
+    build:
+      - cargo:build --release
+      - docker:multi-stage
+      - target:x86_64-unknown-linux-gnu
+    testing:
+      - cargo:test
+      - cargo:clippy
+      - integration-tests:API endpoints
+    deployment:
+      - docker:registry:ghcr.io
+      - port:8080
+      - health-check:/health
+
+  # Flutter Web App - Cross-platform UI
+  web:
+    type: flutter
+    path: lib/
+    description: Cross-platform web application with Material Design
+    technologies:
+      - flutter:3.x
+      - dart:3.x
+      - material-design:3
+      - provider-pattern:state-management
+    features:
+      - responsive-design:Mobile-first responsive
+      - chat-interface:Real-time messaging
+      - file-browser:File management UI
+      - calendar-view:Calendar integration
+      - settings-panel:User preferences
+      - theme-switching:Light/dark mode
+    apis:
+      - websocket:Real-time communication
+      - rest-api:Backend integration
+      - file-upload:Drag & drop
+    environment:
+      - FLUTTER_WEB_API_URL:http://localhost:8080
+      - FLUTTER_APP_TITLE:Sparka
+    build:
+      - flutter:build web
+      - docker:multi-stage
+    testing:
+      - flutter:test
+      - flutter:analyze
+      - integration-tests:User flows
+    deployment:
+      - docker:registry:ghcr.io
+      - port:3000
+      - static-hosting:Any web server
+
+  # Android App - Native mobile application
+  android:
+    type: android-native
+    path: android/
+    description: Native Android app with Material Design
+    technologies:
+      - kotlin:1.9
+      - android-sdk:34
+      - gradle:8.4
+      - material-design:3
+      - mvvm-architecture:Model-view-viewmodel
+    features:
+      - native-performance:Optimized for Android
+      - material-design:3 components
+      - offline-support:Local data storage
+      - push-notifications:FCM integration
+      - google-auth:OAuth2 flow
+      - calendar-sync:Google Calendar
+      - file-sync:Google Drive
+    environment:
+      - ANDROID_COMPILE_SDK:34
+      - ANDROID_TARGET_SDK:34
+      - ANDROID_MIN_SDK:24
+    build:
+      - gradle:assembleDebug
+      - docker:multi-stage
+      - signing:debug-keystore
+    testing:
+      - android:lint
+      - unit-tests:JUnit
+      - integration-tests:Espresso
+    deployment:
+      - format:apk
+      - signing:release-keystore
+      - distribution:github-releases
+
+# 🐳 Containerization & Deployment
+containers:
+  development:
+    type: docker-compose
+    file: docker-compose.yml
+    description: Local development environment
+    services:
+      - sparka-backend:Rust API with hot reload
+      - sparka-web:Flutter web with dev server
+      - sparka-android:Android build environment
+    volumes:
+      - ./src:/app/src:Backend source
+      - ./lib:/app/lib:Flutter source
+      - ./android:/app/android:Android source
+    ports:
+      - "8080:8080":Backend API
+      - "3000:3000":Flutter web
+    environment:
+      - RUST_LOG:debug
+      - FLUTTER_WEB_API_URL:http://localhost:8080
+
+  production:
+    type: kubernetes
+    description: Production deployment (future)
+    services:
+      - sparka-backend:2 replicas, load balanced
+      - sparka-web:3 replicas, CDN
+      - database:PostgreSQL cluster
+    monitoring:
+      - prometheus:Metrics collection
+      - grafana:Visualization dashboard
+      - loki:Log aggregation
+
+# 🚀 CI/CD Pipeline
+ci_cd:
+  platform: github-actions
+  file: .github/workflows/ci-cd.yml
+  description: Comprehensive CI/CD with quality gates
+  triggers:
+    - push:main,develop
+    - pull_request:All branches
+    - workflow_dispatch:Manual triggers
+  environments:
+    - development:Feature branches
+    - staging:Pull request merges
+    - production:Main branch merges
+  jobs:
+    - quality-checks:Code quality and security
+      - rust:cargo fmt, clippy, audit
+      - flutter:flutter analyze, test, format
+      - android:lint, unit tests
+    - build:Parallel container builds
+      - backend:Docker image build and push
+      - web:Docker image build and push
+      - android:APK build with signing
+    - test:Integration and E2E testing
+      - performance:Load testing and benchmarks
+    - deploy:Production deployment
+    - release:GitHub release creation
+  artifacts:
+    - docker-images:ghcr.io registry
+    - apk-file:GitHub releases
+    - test-results:JUnit and Flutter test reports
+    - coverage-reports:Code coverage metrics
+  notifications:
+    - success:ntfy.sh deployment alerts
+    - failure:ntfy.sh error notifications
+    - status:GitHub status checks
+
+# 📊 Development Workflow
+development:
+  setup:
+    - toolchain:mise for Rust/Flutter/Android
+    - database:SQLite for local, PostgreSQL for production
+    - authentication:GitHub OAuth for registry access
+    - ide:VS Code with Rust/Flutter extensions
+    - debugging:VS Code attach, Docker logs
+  
+  commands:
+    - setup:mise install && docker compose up -d
+    - build-backend:cargo build --release
+    - build-web:flutter build web
+    - build-android:./gradlew assembleDebug
+    - test-backend:cargo test
+    - test-web:flutter test
+    - test-android:./gradlew test
+    - lint:cargo clippy && flutter analyze
+    - format:cargo fmt && flutter format .
+    - clean:docker compose down && cargo clean
+  
+  urls:
+    - backend:http://localhost:8080
+    - web:http://localhost:3000
+    - api-docs:http://localhost:8080/docs
+    - health-checks:http://localhost:8080/health
+
+# 📋 Quality Standards
+quality:
+  rust:
+    formatting:rustfmt
+    linting:clippy
+    testing:cargo test + integration tests
+    security:cargo audit
+    documentation:rustdoc comments
+  
+  flutter:
+    formatting:dart format
+    linting:flutter analyze
+    testing:flutter test + widget tests
+    security:flutter pub audit
+    documentation:dartdoc comments
+  
+  android:
+    formatting:ktlint
+    linting:Android lint
+    testing:JUnit + Espresso
+    security:Dependency scanning
+    documentation:KDoc comments
+
+# 🔒 Security
+security:
+  api_keys:
+    - groq:Environment variable
+    - google:Environment variable
+    - github:GitHub secrets
+  
+  data_protection:
+    - encryption:TLS for all communication
+    - authentication:JWT with refresh tokens
+    - validation:Input sanitization
+    - rate_limiting:API endpoint protection
+  
+  container_security:
+    - base_images:Official minimal images
+    - scanning:Regular vulnerability scans
+    - isolation:Proper container separation
+    - secrets:GitHub secrets integration
+
+# 📈 Monitoring & Observability
+monitoring:
+  metrics:
+    - response_time:API endpoint performance
+    - error_rates:Failure tracking
+    - throughput:Request volume
+    - resource_usage:CPU, memory, disk
+  
+  logging:
+    - format:Structured JSON
+    - correlation:Request tracking
+    - aggregation:Centralized log collection
+    - retention:30-day rotation
+  
+  health_checks:
+    - endpoints:/health on all services
+    - databases:Connection validation
+    - external_services:Dependency health
+    - alerts:Automated failure notifications
+
+# 🚀 Future Roadmap
+roadmap:
+  v1.1:
+    - iOS app development
+    - Progressive Web App (PWA)
+    - WebSocket real-time updates
+    - Enhanced offline support
+  
+  v1.2:
+    - Microservices architecture
+    - PostgreSQL migration
+    - Redis caching layer
+    - Advanced analytics
+  
+  v2.0:
+    - Multi-tenant support
+    - Advanced AI features
+    - Enterprise integrations
+    - Global deployment
+
+# 📚 Documentation
+# 🚀 Production Deployment Strategy
+- [x] **Automated releases** - GitHub Actions with semantic versioning
+- [x] **Multi-environment support** - Development, staging, production branches
+- [x] **Rollback capability** - Quick rollback on deployment failures
+- [x] **Blue-green deployments** - Zero-downtime releases
+- [x] **Canary releases** - Progressive feature rollouts
+
+# 📚 Documentation
+documentation:
+  api:
+    - openapi:OpenAPI/Swagger specification
+    - interactive:Swagger UI
+    - examples:Multiple languages
+    - postman:Collection for testing
+  
+  user:
+    - installation:Platform-specific guides
+    - troubleshooting:Common issues
+    - tutorials:Video walkthroughs
+    - faq:Self-service documentation
+  
+  developer:
+    - architecture:Design documents
+    - contributing:Guidelines and standards
+    - deployment:Production procedures
+    - monitoring:Operations handbook

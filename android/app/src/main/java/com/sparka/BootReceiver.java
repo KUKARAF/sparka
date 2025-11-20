@@ -10,16 +10,13 @@ public class BootReceiver extends BroadcastReceiver {
     
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
-            Log.d(TAG, "Boot completed, starting services");
-            
-            // Start the overlay service
-            Intent overlayService = new Intent(context, OverlayService.class);
-            context.startService(overlayService);
-            
-            // Start the ticket check service
-            Intent ticketService = new Intent(context, TicketCheckService.class);
-            context.startService(ticketService);
-        }
+        Log.d(TAG, "Boot received");
+        // Start overlay service on boot
+        Intent serviceIntent = new Intent(context, OverlayService.class);
+        context.startService(serviceIntent);
+    }
+    
+    static {
+        System.loadLibrary("sparka");
     }
 }
