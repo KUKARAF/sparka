@@ -1,0 +1,97 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    name: Build APK and Create Release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+      
+    - name: Build APK
+      run: |
+        cd android
+        ./gradlew assembleDebug --stacktrace
+        
+    - name: Find APK
+      id: find_apk
+      run: |
+        APK_PATH=$(find android/app/build/outputs/apk/debug -name "*.apk" -type f | head -1)
+        echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+        echo "Found APK at: $APK_PATH"
+        
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Sparka APK v${{ github.run_number }}
+        body: |
+          ## Sparka Android APK
+          
+          **Build:** ${{ github.sha }}
+          **Version:** v${{ github.run_number }}
+          
+          ### Installation:
+          1. Download the APK file below
+          2. Install on your Android device
+          3. Enable "Install from unknown sources" if needed
+        files: ${{ steps.find_apk.outputs.apk_path }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Notify Success
+      if: success()
+      run: |
+        curl -X POST \
+          -H "Title: 🎉 Sparka APK Released Successfully" \
+          -H "Priority: high" \
+          -H "Tags: sparka,apk,success" \
+          -d "Sparka APK v${{ github.run_number }} has been built and released!
+
+          Download: https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}
+
+          Commit: ${{ github.sha }}" \
+          https://ntfy.sh/bigboy
+          
+    - name: Notify Failure
+      if: failure()
+      run: |
+        curl -X POST \
+          -H "Title: 💥 Sparka APK Build Failed" \
+          -H "Priority: high" \
+          -H "Tags: sparka,apk,failure" \
+          -d "Sparka APK build failed for commit ${{ github.sha }}
+
+          Check the Actions tab for details." \
+          https://ntfy.sh/bigboy
