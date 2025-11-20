@@ -1,1 +1,57 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+
+# Flutter
+/build/
+.dart_tool/
+.flutter-plugins
+.packages
+.pub-cache
+/.packages
+
+# Android
+/android-sdk/
+/android-sdk/build-tools/
+/android-sdk/platforms/
+/android-sdk/cmdline-tools/
+
+# Build outputs
+/target/
+**/*.apk
+**/*.jar
+**/*.war
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Docker
+.dockerignore
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-error.log*
+yarn.lock
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Backup files
+*.bak
+*.backup
